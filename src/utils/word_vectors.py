@@ -8,9 +8,9 @@ def load_word_vectors(word_vectors_name, embedding_size, word_vectors_cache='../
 
     word_vectors = None
 
-    if word_vectors_name == 'GloVe_6B':
+    if word_vectors_name == 'GloVe_6B':#这模型有多种embedding_size可选 这里我们用300维度的
         assert embedding_size in (50, 100, 200, 300)
-        word_vectors = GloVe(name='6B', dim=embedding_size, cache=word_vectors_cache)
+        word_vectors = GloVe(name='6B', dim=embedding_size, cache=word_vectors_cache)#[400000,300]  40万个词 每个词300维度
 
     if word_vectors_name == 'GloVe_42B':
         embedding_size = 300

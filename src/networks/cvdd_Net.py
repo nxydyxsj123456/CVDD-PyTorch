@@ -12,7 +12,7 @@ class CVDDNet(BaseNet):
         super().__init__()
 
         # Load pretrained model (which provides a hidden representation per word, e.g. word vector or language model)
-        self.pretrained_model = pretrained_model
+        self.pretrained_model = pretrained_model   #把之前手工做的embedding层传进来
         self.hidden_size = pretrained_model.embedding_size
 
         # Set self-attention module
@@ -23,7 +23,7 @@ class CVDDNet(BaseNet):
                                             n_attention_heads=n_attention_heads)
 
         # Model parameters
-        self.c = nn.Parameter((torch.rand(1, n_attention_heads, self.hidden_size) - 0.5) * 2)
+        self.c = nn.Parameter((torch.rand(1, n_attention_heads, self.hidden_size) - 0.5) * 2)   #[0,1)中均匀取出的数字 变到[-1,1)  尺寸[1, n_attention_heads, self.hidden_size]
         self.cosine_sim = nn.CosineSimilarity(dim=2)
 
         # Temperature parameter alpha
@@ -39,7 +39,7 @@ class CVDDNet(BaseNet):
         # A.shape = (batch_size, n_attention_heads, sentence_length)
         # M.shape = (batch_size, n_attention_heads, hidden_size)
 
-        cosine_dists = 0.5 * (1 - self.cosine_sim(M, self.c))
+        cosine_dists = 0.5 * (1 - self.cosine_sim(M, self.c))   #计算余弦相似度 越大说明越相似 1-* 则越小越相似 描述为余弦距离
         context_weights = F.softmax(-self.alpha * cosine_dists, dim=1)
 
         return cosine_dists, context_weights, A

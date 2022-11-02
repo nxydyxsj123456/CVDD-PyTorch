@@ -34,8 +34,8 @@ class CVDDTrainer(BaseTrainer):
         self.test_scores = None
         self.test_att_weights = None
 
-        # alpha annealing strategy
-        self.alpha_milestones = np.arange(1, 6) * int(n_epochs / 5)  # 5 equidistant milestones over n_epochs
+        # alpha annealing strategy #退火策略
+        self.alpha_milestones = np.arange(1, 6) * int(n_epochs / 5)  # 5 equidistant milestones over n_epochs 把所有epoch做5等分做epoch
         if alpha_scheduler == 'soft':
             self.alphas = [0.0] * 5
         if alpha_scheduler == 'linear':
@@ -55,9 +55,9 @@ class CVDDTrainer(BaseTrainer):
         n_attention_heads = net.n_attention_heads
 
         # Get train data loader
-        train_loader, _ = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        train_loader, _ = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)#暂时不用test_loader
 
-        # Initialize context vectors
+        # Initialize context vectors  通过将全部训练集在文章维度上求单词的平均向量再求3个聚类中心 作为计算网络余弦距离的 C
         net.c.data = torch.from_numpy(
             initialize_context_vectors(net, train_loader, self.device)[np.newaxis, :]).to(self.device)
 
@@ -110,7 +110,7 @@ class CVDDTrainer(BaseTrainer):
                 CCT = net.c @ net.c.transpose(1, 2)
                 P = torch.mean((CCT.squeeze() - I) ** 2)
 
-                # compute loss
+                # compute loss           #损失由两部分构成，一个是余弦距离和一部分是 正交惩罚
                 loss_P = self.lambda_p * P
                 loss_emp = torch.mean(torch.sum(scores, dim=1))
                 loss = loss_emp + loss_P
@@ -119,7 +119,7 @@ class CVDDTrainer(BaseTrainer):
                 dists_per_head += (cosine_dists.cpu().data.numpy(),)
 
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(net.parameters(), 0.5)  # clip gradient norms in [-0.5, 0.5]
+                torch.nn.utils.clip_grad_norm_(net.parameters(), 0.5)  # clip gradient norms in [-0.5, 0.5]  将所有梯度乘一个值 只解决梯度爆炸问题，不解决梯度消失问题
                 optimizer.step()
 
                 # Get attention matrix
@@ -182,7 +182,7 @@ class CVDDTrainer(BaseTrainer):
                 idx, text_batch, label_batch, _ = data
                 text_batch, label_batch = text_batch.to(self.device), label_batch.to(self.device)
 
-                # forward pass
+                # forward pass         #自注意力机制使得不管输入长度多少的句子都能变成固定长度的一个上下文
                 cosine_dists, context_weights, A = net(text_batch)
                 scores = context_weights * cosine_dists
                 _, best_att_head = torch.min(scores, dim=1)
@@ -231,7 +231,7 @@ class CVDDTrainer(BaseTrainer):
 
         if np.sum(labels) > 0:
             best_context = None
-            if ad_score == 'context_dist_mean':
+            if ad_score == 'context_dist_mean':#测AUC的时候需要完全用测试集
                 self.test_auc = roc_auc_score(labels, scores)
             if ad_score == 'context_best':
                 self.test_auc = 0.0
@@ -274,16 +274,18 @@ def initialize_context_vectors(net, train_loader, device):
     # Get vector representations
     X = ()
     for data in train_loader:
-        _, text, _, _ = data
+        _, text, _, _ = data # { 'weight', 'text', 'index','label'}
         text = text.to(device)
         # text.shape = (sentence_length, batch_size)
+        tmptext=text.transpose(0, 1)
 
         X_batch = net.pretrained_model(text)
         # X_batch.shape = (sentence_length, batch_size, embedding_size)
 
         # compute mean and normalize
-        X_batch = torch.mean(X_batch, dim=0)
-        X_batch = X_batch / torch.norm(X_batch, p=2, dim=1, keepdim=True).clamp(min=1e-08)
+        X_batch = torch.mean(X_batch, dim=0)    # [83,64,300]-> [64,300]  每个文章内部 求每个单词平均值
+        tmp=torch.norm(X_batch, p=2, dim=1, keepdim=True)
+        X_batch = X_batch / torch.norm(X_batch, p=2, dim=1, keepdim=True).clamp(min=1e-08)  #在300维词嵌入向量上做norm
         X_batch[torch.isnan(X_batch)] = 0
         # X_batch.shape = (batch_size, embedding_size)
 
@@ -292,8 +294,8 @@ def initialize_context_vectors(net, train_loader, device):
     X = np.concatenate(X)
     n_attention_heads = net.n_attention_heads
 
-    kmeans = KMeans(n_clusters=n_attention_heads).fit(X)
-    centers = kmeans.cluster_centers_ / np.linalg.norm(kmeans.cluster_centers_, ord=2, axis=1, keepdims=True)
+    kmeans = KMeans(n_clusters=n_attention_heads).fit(X)   #聚成三类
+    centers = kmeans.cluster_centers_ / np.linalg.norm(kmeans.cluster_centers_, ord=2, axis=1, keepdims=True)#[3,300]
 
     logger.info('Context vectors initialized.')
 

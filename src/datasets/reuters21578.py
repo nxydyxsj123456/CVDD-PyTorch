@@ -35,6 +35,7 @@ class Reuters_Dataset(TorchnlpDataset):
         #     'sun-oil', 'sunseed', 'tea', 'tin', 'trade', 'veg-oil', 'wheat', 'wpi', 'yen', 'zinc'
         # ]
 
+        #将多分类转化为二分类做异常检测
         self.normal_classes = [classes[normal_class]]
         del classes[normal_class]
         self.outlier_classes = classes
@@ -48,7 +49,7 @@ class Reuters_Dataset(TorchnlpDataset):
         self.train_set.columns.add('weight')
         self.test_set.columns.add('weight')
 
-        train_idx_normal = []  # for subsetting train_set to normal class
+        train_idx_normal = []  # for subsetting train_set to normal class  挑选训练集中正常类别
         for i, row in enumerate(self.train_set):
             if any(label in self.normal_classes for label in row['label']) and (len(row['label']) == 1):
                 train_idx_normal.append(i)
@@ -57,7 +58,7 @@ class Reuters_Dataset(TorchnlpDataset):
                 row['label'] = torch.tensor(1)
             row['text'] = row['text'].lower()
 
-        test_idx = []  # for subsetting test_set to selected normal and anomalous classes
+        test_idx = []  # for subsetting test_set to selected normal and anomalous classes  挑选测试集中正常类别和异常类别
         for i, row in enumerate(self.test_set):
             if any(label in self.normal_classes for label in row['label']) and (len(row['label']) == 1):
                 test_idx.append(i)
@@ -66,22 +67,22 @@ class Reuters_Dataset(TorchnlpDataset):
                 test_idx.append(i)
                 row['label'] = torch.tensor(1)
             else:
-                row['label'] = torch.tensor(1)
+                row['label'] = torch.tensor(1)   #同时属于多个类别的好像不参与异常检测
             row['text'] = row['text'].lower()
 
         # Subset train_set to normal class
-        self.train_set = Subset(self.train_set, train_idx_normal)
+        self.train_set = Subset(self.train_set, train_idx_normal)   #7769  ->108   笑了 狗东西自己改数据XXXXXXXXXXXXXXXXXXXXXXXXXX
         # Subset test_set to selected normal and anomalous classes
-        self.test_set = Subset(self.test_set, test_idx)
+        self.test_set = Subset(self.test_set, test_idx)             #3019  ->2180
 
         # Make corpus and set encoder
-        text_corpus = [row['text'] for row in datasets_iterator(self.train_set, self.test_set)]
+        text_corpus = [row['text'] for row in datasets_iterator(self.train_set, self.test_set)]  #所有文本列出来准备做token
         if tokenizer == 'spacy':
             self.encoder = SpacyEncoder(text_corpus, min_occurrences=3, append_eos=append_eos)
         if tokenizer == 'bert':
             self.encoder = MyBertTokenizer.from_pretrained('bert-base-uncased', cache_dir=root)
 
-        # Encode
+        # Encode  把每个单词映射成一个数字
         for row in datasets_iterator(self.train_set, self.test_set):
             if append_sos:
                 sos_id = self.encoder.stoi[DEFAULT_SOS_TOKEN]
@@ -134,7 +135,7 @@ def reuters_dataset(directory='../data', train=True, test=False, clean_txt=False
 
         for id in split_set_doc_ids:
             if clean_txt:
-                text = clean_text(reuters.raw(id))
+                text = clean_text(reuters.raw(id)) #去除了一些无关紧要的介词、数字 只剩下词汇
             else:
                 text = ' '.join(word_tokenize(reuters.raw(id)))
             labels = reuters.categories(id)

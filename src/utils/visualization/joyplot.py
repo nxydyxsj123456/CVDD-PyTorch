@@ -4,7 +4,7 @@ matplotlib.use('Agg')  # or 'PS', 'PDF', 'SVG'
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import joypy
+#import joypy
 
 
 def plot_joyplot(data, title, export_pdf=False, show=False):
@@ -33,7 +33,7 @@ def plot_joyplot(data, title, export_pdf=False, show=False):
 
     # Draw Plot
     plt.figure(figsize=(16, 10), dpi=80)
-    fig, axes = joypy.joyplot(df, figsize=(14, 10))
+    #fig, axes = joypy.joyplot(df, figsize=(14, 10))
 
     # Decoration
     plt.title(title, fontsize=22)

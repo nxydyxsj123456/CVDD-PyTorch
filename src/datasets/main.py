@@ -12,7 +12,7 @@ def load_dataset(dataset_name, data_path, normal_class, tokenizer='spacy', use_t
 
     dataset = None
 
-    if dataset_name == 'reuters':
+    if dataset_name == 'reuters':#创建了数据集 文本清洗了 用spacy做了token 做了label 以及一个为空的 tensor weight？
         dataset = Reuters_Dataset(root=data_path, normal_class=normal_class, tokenizer=tokenizer,
                                   use_tfidf_weights=use_tfidf_weights, append_sos=append_sos, append_eos=append_eos,
                                   clean_txt=clean_txt)

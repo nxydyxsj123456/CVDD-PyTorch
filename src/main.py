@@ -90,28 +90,28 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, de
 
     # Print experimental setup
     logger.info('Dataset: %s' % dataset_name)
-    logger.info('Normal class: %d' % normal_class)
-    logger.info('Network: %s' % net_name)
-    logger.info('Tokenizer: %s' % cfg.settings['tokenizer'])
-    logger.info('Clean text in pre-processing: %s' % cfg.settings['clean_txt'])
-    if cfg.settings['embedding_size'] is not None:
+    logger.info('Normal class: %d' % normal_class)# 哪个是正常数据
+    logger.info('Network: %s' % net_name)         #使用的网络  cvdd_Net是作者写的网络
+    logger.info('Tokenizer: %s' % cfg.settings['tokenizer'])  #spacy 来做token
+    logger.info('Clean text in pre-processing: %s' % cfg.settings['clean_txt'])   #预处理中清理文本？
+    if cfg.settings['embedding_size'] is not None:                                #词嵌入维度
         logger.info('Word vector embedding size: %d' % cfg.settings['embedding_size'])
-    logger.info('Load pre-trained model: %s' % cfg.settings['pretrained_model'])
+    logger.info('Load pre-trained model: %s' % cfg.settings['pretrained_model'])     #预训练模型 GloVe_6B
 
     # Print CVDD configuration)
-    logger.info('Anomaly Score: %s' % cfg.settings['ad_score'])
-    logger.info('Number of attention heads: %d' % cfg.settings['n_attention_heads'])
-    logger.info('Attention size: %d' % cfg.settings['attention_size'])
-    logger.info('Orthogonality regularization hyperparameter: %.3f' % cfg.settings['lambda_p'])
-    logger.info('Temperature alpha annealing strategy: %s' % cfg.settings['alpha_scheduler'])
+    logger.info('Anomaly Score: %s' % cfg.settings['ad_score'])    #context_dist_mean  上下文特征向量的距离作为异常值评估？
+    logger.info('Number of attention heads: %d' % cfg.settings['n_attention_heads'])   #多头attention 有几个头
+    logger.info('Attention size: %d' % cfg.settings['attention_size'])                 #attention size 150
+    logger.info('Orthogonality regularization hyperparameter: %.3f' % cfg.settings['lambda_p'])  #Orthogonality regularization hyperparameter正交规范化参数？
+    logger.info('Temperature alpha annealing strategy: %s' % cfg.settings['alpha_scheduler'])    #模拟退火算法  对数？
 
     # If specified, load experiment config from JSON-file
-    if load_config:
+    if load_config: #None
         cfg.load_config(import_json=load_config)
         logger.info('Loaded configuration from %s.' % load_config)
 
     # Set seed for reproducibility
-    if cfg.settings['seed'] != -1:
+    if cfg.settings['seed'] != -1:  #有seed可复现
         random.seed(cfg.settings['seed'])
         np.random.seed(cfg.settings['seed'])
         torch.manual_seed(cfg.settings['seed'])
@@ -120,11 +120,11 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, de
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
     # Default device to 'cpu' if cuda is not available
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available():   #CUDA版本
         device = 'cpu'
     logger.info('Computation device: %s' % device)
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
-    if n_threads > 0:
+    if n_threads > 0: #不用多线程
         torch.set_num_threads(n_threads)
         logger.info('Number of threads used for parallelizing CPU operations: %d' % n_threads)
 
@@ -133,7 +133,7 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, de
                            clean_txt=cfg.settings['clean_txt'])
 
     # Initialize CVDD model and set word embedding
-    cvdd = CVDD(cfg.settings['ad_score'])
+    cvdd = CVDD(cfg.settings['ad_score'])#做了一个空壳准备了几个参数向量
     cvdd.set_network(net_name=net_name,
                      dataset=dataset,
                      pretrained_model=cfg.settings['pretrained_model'],

@@ -18,15 +18,15 @@ def build_network(net_name, dataset, embedding_size=None, pretrained_model=None,
     # Set embedding
 
     # Load pre-trained model if specified
-    if pretrained_model is not None:
+    if pretrained_model is not None:  #欲训练的词嵌入模型
         # if word vector model
         if pretrained_model in ['GloVe_6B', 'GloVe_42B', 'GloVe_840B', 'GloVe_twitter.27B', 'FastText_en']:
-            word_vectors, embedding_size = load_word_vectors(pretrained_model, embedding_size, word_vectors_cache)
+            word_vectors, embedding_size = load_word_vectors(pretrained_model, embedding_size, word_vectors_cache)#[400000,300]  40万个词 每个词300维度的word_vectors
             embedding = MyEmbedding(vocab_size, embedding_size, update_embedding, embedding_reduction,
                                     use_tfidf_weights, normalize_embedding)
             # Init embedding with pre-trained word vectors
             for i, token in enumerate(dataset.encoder.vocab):
-                embedding.weight.data[i] = word_vectors[token]
+                embedding.weight.data[i] = word_vectors[token]    #因为做的token index 跟 word_vector 对不起 所有要映射一下。需要确认'<pad>', '<unk>', '</s>', '<s>', '<copy>'
         # if language model
         if pretrained_model in ['bert']:
             embedding = BERT()
